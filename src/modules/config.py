@@ -2,7 +2,7 @@ import os
 
 
 ROUTERS = [
-    "users"
+    "user"
 ]
 
 MONGO_HOST = "mongodb://db"
