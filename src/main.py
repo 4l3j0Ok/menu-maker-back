@@ -12,13 +12,15 @@ app = FastAPI(
 )
 
 
-for module in config.ROUTERS:
-    logger.info(f"Registrando router '{module}'.")
-    router = importlib.import_module(f"routers.{module}")
+for item in config.ROUTERS:
+    module_name = item["module"]
+    prefix = item["module"] if not item.get("parent") else f"{item['parent']}/{item['module']}"
+    logger.info(f"Registrando router '{module_name}'.")
+    module = importlib.import_module(f"routers.{module_name}")
     app.include_router(
-        router=router.router,
-        prefix=f"/{module}",
-        tags=[module.capitalize()]
+        router=module.router,
+        prefix=f"/{prefix}",
+        tags=[item['module'].capitalize()]
     )
 
 
