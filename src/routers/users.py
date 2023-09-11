@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 import modules.user as functions
 from models.user import Success, Detail
-from modules import messages
+from modules.common import messages
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 
 

@@ -1,7 +1,7 @@
-from modules import messages
+from modules.common import messages
 from models.user import User, UserDB
 from pydantic import ValidationError
-from db.client import client
+from db.connect import client
 from bson import ObjectId
 
 
