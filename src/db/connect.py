@@ -1,4 +1,4 @@
-from modules import config
+from modules.common import config
 from pymongo import MongoClient
 
 
