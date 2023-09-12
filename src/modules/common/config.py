@@ -7,7 +7,17 @@ MONGO_PORT = int(os.getenv("MONGO_PORT"))
 MONGO_USER = os.getenv("MONGO_USER")
 MONGO_PASS = os.getenv("MONGO_PASS")
 ROUTERS = [
-    "menus"
+    {
+        "module": "menus"
+    },
+    {
+        "module": "sections",
+        "parent": "menus"
+    },
+    {
+        "module": "products",
+        "parent": "menus/sections"
+    }
 ]
 
 LOG_PATH = "/var/log/app.log"

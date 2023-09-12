@@ -16,13 +16,13 @@ async def login(form: OAuth2PasswordRequestForm = Depends()) -> Success:
     if not success:
         raise HTTPException(
             status_code=403,
-            detail=Detail(
+            payload=Detail(
                 payload=None,
                 message=result
             )
         )
     return Success(
-        detail=Detail(
+        payload=Detail(
             payload={"id": str(result.inserted_id)},
             message=messages.MSG_SUCCESS_SAVE
         )
@@ -36,14 +36,14 @@ async def login(form: OAuth2PasswordRequestForm = Depends()) -> Success:
 #     if not success:
 #         raise HTTPException(
 #             status_code=400,
-#             detail=Detail(
+#             payload=Detail(
 #                 payload=None,
 #                 message=result
 #             )
 #         )
 #     return Success(
 #         input=user,
-#         detail=Detail(
+#         payload=Detail(
 #             payload={"id": str(result.inserted_id)},
 #             message=messages.MSG_SUCCESS_SAVE
 #         )
