@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from pydantic import HttpUrl
+from bson import ObjectId
 
 
 class Product(BaseModel):
