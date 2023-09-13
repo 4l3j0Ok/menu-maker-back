@@ -1,6 +1,8 @@
-ERR_MENU_NOT_FOUND = "Menú no encontrado."
+ERR_MENU_NOT_FOUND = "Menú con id {id} no encontrado."
 ERR_MENU_ALREADY_EXISTS = "El menú con id {id} ya existe."
-ERR_MENU_NOT_CHANGED = "El menú ingresado posee los mismos datos."
+
+ERR_SECTION_NOT_FOUND = "Sección con id {id} no encontrada."
+ERR_SECTION_ALREADY_EXISTS = "La sección con id {id} ya existe."
 
 ERR_SCHEMA = "Los datos ingresados no tienen la estructura adecuada. Argumentos faltantes o incorrectos: {err_args}." 
 MSG_SUCCESS_GENERIC = "Éxito al realizar la operación."
