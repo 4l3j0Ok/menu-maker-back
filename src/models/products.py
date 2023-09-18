@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from pydantic import HttpUrl
+from pydantic import BaseModel, Field
+from typing import Union
 from bson import ObjectId
 
 
@@ -7,7 +7,7 @@ class Product(BaseModel):
     name: str
     description: str
     price: int
-    img: HttpUrl
+    img: Union[str, None] = Field(example="https://example.com/")
 
 
 class ProductDB(Product):
