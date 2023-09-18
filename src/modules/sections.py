@@ -1,23 +1,98 @@
 from bson import ObjectId
 from pydantic import ValidationError
+from typing import Union, Tuple
 from db.connect import client
 from models.sections import Section, SectionDB
 from modules.common import messages
 from modules.common.logger import logger
+from modules import products, menus
 
 
 db = client.local.sections
 
 
-def get(section_id, index = None):
-    if not ObjectId.is_valid(section_id):
-        return False, messages.ERR_SCHEMA.format(
-            err_args="sections{}".format(
-                f"[{index}]" if index != None else ""
-            )
-        )
-    result = list(db.find({"_id":ObjectId(section_id)} if section_id else None))
-    if not result:
-        return False, messages.ERR_SECTION_NOT_FOUND.format(id=section_id)
-    data = SectionDB(**result[0]).model_dump()
+def get(
+        menu_id: Union[str, ObjectId] = None,
+        section_ids: Union[str, list[str], ObjectId, list[ObjectId]] = None,
+        as_dict: bool = False
+    ) -> Tuple[bool, Union[SectionDB, list[SectionDB]]]:
+    query = {}
+    if menu_id:
+        success, result = menus.get(menu_id)
+        if not success:
+            return False, result
+        query = {"_id": {"$in": [ObjectId(section) for section in result.sections]}}
+    elif section_ids:
+        section_ids = section_ids if isinstance(section_ids, list) else [section_ids]
+        section_ids = section_ids if isinstance(section_ids[0], ObjectId) \
+            else [ObjectId(section_id) for section_id in section_ids]
+        query = {"_id": {"$in": section_ids}}
+    sections = list(db.find(query))
+    if not sections:
+        return False, messages.ERR_SECTIONS_NOT_FOUND
+    data = list(SectionDB(**item) for item in sections) if not as_dict \
+        else list(SectionDB(**item).model_dump() for item in sections)
+    return True, data if len(data) > 1 else data[0]
+
+
+def update(section_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
+    success, result = get(section_id)
+    if not success:
+        return False, result
+    result.update(data)
+    success, reason = validate(result)
+    if not success:
+        return False, reason
+    result = db.update_one({"_id": ObjectId(section_id)}, {"$set": data})
+    return True, dict(
+        modified_count = str(result.modified_count)
+    )
+
+
+def new(menu_id: str, section: Union[dict, Section]) -> Tuple[bool, Union[dict, str]]:
+    section = section if isinstance(section, dict) else section.model_dump()
+    success, reason = validate(section, ignored_keys=["products"] if not section.get("products") else [])
+    if not success:
+        return False, reason
+    section["products"] = section.get("products", [])
+    result = db.insert_one(section)
+    success, result = menus.append_section(menu_id, result.inserted_id)
+    if not success:
+        logger.error(result)
+        return False, result
+    return True, result
+
+
+def remove(section_ids) -> Tuple[bool, Union[dict, str]]:
+    success, result = get(section_ids=section_ids)
+    if not success:
+        logger.error(f"Error al remover las secciones: {result}")
+        return False, result
+    removed_sections = db.delete_one({"_id": result._id}).deleted_count
+    data = dict(
+        removed_sections = removed_sections,
+        removed_products = 0
+    )
+    if result.products:
+        success, result = products.remove(result.products)
+        if not success:
+            logger.error(f"Error al remover los productos: {result}")
+            return False, result
+        data.update(result)
     return True, data
+
+
+def validate(section, ignored_keys=[]):
+    try:
+        Section.model_validate(section)
+        if section.products:
+            for i, products_id in enumerate(section.products):
+                success, result = products.get(products_id, index=i)
+                if not success:
+                    return False, result
+        return True, None
+    except ValidationError as vex:
+        fault_keys = [error["loc"][0] for error in vex.errors() if str(error["loc"][0]) not in ignored_keys]
+        if fault_keys:
+            return False, messages.ERR_SCHEMA.format(err_args=", ".join(fault_keys))
+        return True, None
