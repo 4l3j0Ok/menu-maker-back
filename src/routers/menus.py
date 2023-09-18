@@ -12,7 +12,16 @@ router = APIRouter()
 @router.get("/")
 async def get_menus(menu_id: str = None) -> Result:
     "Obtiene la lista de menús o el menú indicado en base al id."
-    success, result = menus.get(menu_id)
+    success, result = menus.get(menu_id, as_dict=True)
+    if not success:
+        raise HTTPException(status_code=400, detail=result)
+    return Result(payload=result, message=messages.MSG_SUCCESS_GENERIC)
+
+
+@router.post("/new")
+async def new_menu(menu: Union[Menu, dict]) -> Result:
+    "Añade el menú indicado."
+    success, result = menus.new(menu)
     if not success:
         raise HTTPException(status_code=400, detail=result)
     return Result(payload=result, message=messages.MSG_SUCCESS_GENERIC)
@@ -22,15 +31,6 @@ async def get_menus(menu_id: str = None) -> Result:
 async def update_menu(menu_id: str, data: Union[Menu, dict]) -> Result:
     "Actualiza el menú indicado en base al id."
     success, result = menus.update(menu_id, data)
-    if not success:
-        raise HTTPException(status_code=400, detail=result)
-    return Result(payload=result, message=messages.MSG_SUCCESS_GENERIC)
-
-
-@router.post("/new")
-async def new_menu(data: Menu) -> Result:
-    "Añade un nuevo menú indicado en base al schema."
-    success, result = menus.new(data)
     if not success:
         raise HTTPException(status_code=400, detail=result)
     return Result(payload=result, message=messages.MSG_SUCCESS_GENERIC)
