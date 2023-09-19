@@ -37,9 +37,9 @@ async def update_menu(menu_id: str, data: Union[Section, dict]) -> Result:
 
 
 @router.delete("/remove")
-def remove_section(menu_id: str, section_id: str) -> Result:
-    "Remueve una sección de un menú."
-    success, result = sections.remove(menu_id, section_id)
+def remove_section(section_id: str) -> Result:
+    "Remueve la sección indicada en base al id del menú y de la sección."
+    success, result = sections.remove(section_id)
     if not success:
         raise HTTPException(status_code=400, detail=result)
     return Result(payload=result, message=messages.MSG_SUCCESS_GENERIC)

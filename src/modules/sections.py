@@ -1,6 +1,6 @@
 from bson import ObjectId
-from pydantic import ValidationError
 from typing import Union, Tuple
+from pydantic import ValidationError
 from db.connect import client
 from models.sections import Section, SectionDB
 from modules.common import messages
@@ -10,6 +10,8 @@ from modules import products, menus
 
 db = client.local.sections
 
+#TODO: referencia al menu_id en las secciones para no tener que consultar multiples colecciones.
+#TODO: remover las secciones de los menus al eliminar una seccion.
 
 def get(
         menu_id: Union[str, ObjectId] = None,
@@ -27,26 +29,13 @@ def get(
         section_ids = section_ids if isinstance(section_ids[0], ObjectId) \
             else [ObjectId(section_id) for section_id in section_ids]
         query = {"_id": {"$in": section_ids}}
+    logger.info(f"Ejecutando find: {query}")
     sections = list(db.find(query))
     if not sections:
-        return False, messages.ERR_SECTIONS_NOT_FOUND
+        return True, []
     data = list(SectionDB(**item) for item in sections) if not as_dict \
         else list(SectionDB(**item).model_dump() for item in sections)
     return True, data if len(data) > 1 else data[0]
-
-
-def update(section_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
-    success, result = get(section_id)
-    if not success:
-        return False, result
-    result.update(data)
-    success, reason = validate(result)
-    if not success:
-        return False, reason
-    result = db.update_one({"_id": ObjectId(section_id)}, {"$set": data})
-    return True, dict(
-        modified_count = str(result.modified_count)
-    )
 
 
 def new(menu_id: str, section: Union[dict, Section]) -> Tuple[bool, Union[dict, str]]:
@@ -63,12 +52,26 @@ def new(menu_id: str, section: Union[dict, Section]) -> Tuple[bool, Union[dict, 
     return True, result
 
 
+def update(section_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
+    success, result = get(section_id)
+    if not success:
+        return False, result
+    result.update(data)
+    success, reason = validate(result)
+    if not success:
+        return False, reason
+    result = db.update_one({"_id": ObjectId(section_id)}, {"$set": data})
+    return True, dict(
+        modified_count = str(result.modified_count)
+    )
+
+
 def remove(section_ids) -> Tuple[bool, Union[dict, str]]:
     success, result = get(section_ids=section_ids)
     if not success:
         logger.error(f"Error al remover las secciones: {result}")
         return False, result
-    removed_sections = db.delete_one({"_id": result._id}).deleted_count
+    removed_sections = db.delete_one({"_id": result.id}).deleted_count
     data = dict(
         removed_sections = removed_sections,
         removed_products = 0
@@ -96,3 +99,15 @@ def validate(section, ignored_keys=[]):
         if fault_keys:
             return False, messages.ERR_SCHEMA.format(err_args=", ".join(fault_keys))
         return True, None
+
+
+
+def append_product(section_id: str, product_id: Union[str, ObjectId]):
+    product_id = product_id if isinstance(product_id, ObjectId) else ObjectId(product_id)
+    success, result = get(section_ids=section_id)
+    if not success:
+        return False, result
+    result = db.update_one({"_id": ObjectId(section_id)}, {"$push": {"products": product_id}})
+    return True, dict(
+        modified_count = str(result.modified_count)
+    )

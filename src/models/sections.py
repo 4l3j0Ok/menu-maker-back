@@ -17,4 +17,6 @@ class SectionDB(Section):
     def __init__(self, **section):
         if "_id" in section and isinstance(section["_id"], ObjectId):
             section["id"] = str(section["_id"])
+        if "products" in section:
+            section["products"] = [str(product) for product in section["products"]]
         super().__init__(**section)
