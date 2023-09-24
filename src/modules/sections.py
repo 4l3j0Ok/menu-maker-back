@@ -39,10 +39,15 @@ def get(
 
 def new(menu_id: str, section: Union[dict, Section]) -> Tuple[bool, Union[dict, str]]:
     section = section if isinstance(section, dict) else section.model_dump()
+    menu_id = menu_id if isinstance(menu_id, ObjectId) else ObjectId(menu_id)
+    success, menu = menus.get(menu_id)
+    if not success:
+        return False, menu
     success, reason = validate(section, ignored_keys=["products"] if not section.get("products") else [])
     if not success:
         return False, reason
     section["products"] = section.get("products", [])
+    section["menu_id"] = menu_id
     db_result = db.insert_one(section)
     success, result = menus.append_section(menu_id, db_result.inserted_id)
     if not success:
@@ -107,12 +112,13 @@ def validate(section, ignored_keys=[]):
 
 
 
-def append_product(section_id: str, product_id: Union[str, ObjectId]):
+def append_product(section_id: Union[str, ObjectId], product_id: Union[str, ObjectId]):
+    section_id = section_id if isinstance(section_id, ObjectId) else ObjectId(section_id)
     product_id = product_id if isinstance(product_id, ObjectId) else ObjectId(product_id)
     success, section = get(section_id)
     if not success:
         return False, section
-    db_result = db.update_one({"_id": ObjectId(section_id)}, {"$push": {"products": product_id}})
+    db_result = db.update_one({"_id": section_id}, {"$push": {"products": product_id}})
     return True, dict(
         modified_count = str(db_result.modified_count)
     )

@@ -37,17 +37,24 @@ def get(
 
 
 def new(section_id: str, product: Union[dict, Product]) -> Tuple[bool, Union[dict, str]]:
+    section_id = section_id if isinstance(section_id, ObjectId) else ObjectId(section_id)
     product = product if isinstance(product, dict) else product.model_dump()
     success, reason = validate(product)
     if not success:
         return False, reason
+    success, sections = get(section_id=section_id, as_dict=True)
+    if not success:
+        return False, sections
+    product["section_id"] = section_id
     logger.info(f"Ejecutando insert_one: {product}")
     db_result = db.insert_one(product)
     success, result = sections.append_product(section_id, db_result.inserted_id)
     if not success:
         logger.error(result)
         return False, result
-    return True, db_result
+    return True, dict(
+        inserted_id = str(db_result.inserted_id)
+    )
 
 
 def update(product_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:

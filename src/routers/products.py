@@ -10,12 +10,17 @@ router = APIRouter()
 
 
 @router.get("/")
-def get_products(section_id: str) -> Result:
-    "Obtiene la lista de productos de una sección en base al id."
-    success, result = products.get(section_id, as_dict=True)
+def get_products(section_id: str = None, product_id: str = None) -> Result:
+    """Obtiene la lista de productos en base al id del producto o de la sección."""
+    success, result = products.get(
+        section_id=section_id,
+        product_ids=product_id,
+        as_dict=True
+    )
     if not success:
         raise HTTPException(status_code=400, detail=result)
     return Result(payload=result, message=messages.MSG_SUCCESS_GENERIC)
+
 
 
 @router.post("/new")
