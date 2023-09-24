@@ -8,7 +8,7 @@ from modules.common.logger import logger
 from modules import sections
 
 
-db = client.local.menus
+db = client.menu_maker.menus
 
 
 def get(menu_ids: Union[str, list[str]], as_dict: bool = False) -> Tuple[bool, Union[dict, list[dict]]]:

@@ -8,7 +8,7 @@ from modules.common.logger import logger
 from modules import sections
 
 
-db = client.local.products
+db = client.menu_maker.products
 
 
 def get(

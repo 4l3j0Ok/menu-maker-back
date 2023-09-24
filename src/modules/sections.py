@@ -8,10 +8,8 @@ from modules.common.logger import logger
 from modules import products, menus
 
 
-db = client.local.sections
+db = client.menu_maker.sections
 
-#TODO: referencia al menu_id en las secciones para no tener que consultar multiples colecciones.
-#TODO: remover las secciones de los menus al eliminar una seccion.
 
 def get(
         section_ids: Union[str, list[str], ObjectId, list[ObjectId]] = None,
