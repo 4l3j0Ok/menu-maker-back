@@ -69,7 +69,7 @@ def update(section_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
     )
 
 
-def remove(section_id) -> Tuple[bool, Union[dict, str]]:
+def remove(section_id, from_remove: bool = False) -> Tuple[bool, Union[dict, str]]:
     section_id = section_id if isinstance(section_id, ObjectId) else ObjectId(section_id)
     success, section = get(section_id)
     if not success:
@@ -81,11 +81,14 @@ def remove(section_id) -> Tuple[bool, Union[dict, str]]:
         removed_products = 0
     )
     if section.products:
-        success, product = products.remove(section.products)
+        success, result = products.remove(section.products, from_remove=True)
+        logger.info(f"Resultado de remover los productos: {result}")
+        if success:
+            data.update(result)
+    if not from_remove:
+        success, result = menus.remove_section(section.menu_id, section_id)
         if not success:
-            logger.error(f"Error al remover los productos: {product}")
-            return False, product
-        data.update(product)
+            logger.error(result)
     return True, data
 
 
@@ -114,4 +117,12 @@ def append_product(section_id: str, product_id: Union[str, ObjectId]):
     db_result = db.update_one({"_id": ObjectId(section_id)}, {"$push": {"products": product_id}})
     return True, dict(
         modified_count = str(db_result.modified_count)
+    )
+
+
+def remove_product(section_id: str, product_id: Union[str, ObjectId]):
+    product_id = product_id if isinstance(product_id, ObjectId) else ObjectId(product_id)
+    result = db.update_one({"_id": ObjectId(section_id)}, {"$pull": {"sections": product_id}})
+    return True, dict(
+        modified_count = str(result.modified_count)
     )

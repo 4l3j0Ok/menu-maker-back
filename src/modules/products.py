@@ -12,8 +12,8 @@ db = client.local.products
 
 
 def get(
-        section_id: Union[str, ObjectId] = None,
         product_ids: Union[str, list[str], ObjectId, list[ObjectId]] = None,
+        section_id: Union[str, ObjectId] = None,
         as_dict: bool = False
     ) -> Tuple[bool, Union[ProductDB, list[ProductDB]]]:
     query = {}
@@ -66,17 +66,22 @@ def update(product_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
     )
 
 
-def remove(product_ids) -> Tuple[bool, Union[dict, str]]:
-    success, product = get(product_ids=product_ids)
+def remove(product_id, from_remove: bool = False) -> Tuple[bool, Union[dict, str]]:
+    product_id = ObjectId(product_id)
+    success, product = get(product_id)
     if not success:
         logger.error(f"Error al remover : {product}")
         return False, product
-    query = {"_id": ObjectId(product.id)}
+    query = {"_id": product_id}
     logger.info(f"Ejecutando delete_one: {query}")
     removed_products = db.delete_one(query).deleted_count
     data = dict(
         removed_products = removed_products
     )
+    if not from_remove:
+        success, result = sections.remove_product(product.section_id, product_id)
+        if not success:
+            logger.error(result)
     return True, data
 
 

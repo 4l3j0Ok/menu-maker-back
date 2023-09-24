@@ -72,7 +72,7 @@ def remove(menu_id) -> Tuple[bool, Union[dict, str]]:
         removed_products = 0
     )
     if menu.sections:
-        success, result = sections.remove(menu.sections)
+        success, result = sections.remove(menu.sections, from_remove=True)
         if not success:
             logger.error(f"Error al remover las secciones: {result}")
             return False, result
@@ -102,6 +102,14 @@ def append_section(menu_id: str, section_id: Union[str, ObjectId]):
     if not success:
         return False, result
     result = db.update_one({"_id": ObjectId(menu_id)}, {"$push": {"sections": section_id}})
+    return True, dict(
+        modified_count = str(result.modified_count)
+    )
+
+
+def remove_section(menu_id: str, section_id: Union[str, ObjectId]):
+    section_id = section_id if isinstance(section_id, ObjectId) else ObjectId(section_id)
+    result = db.update_one({"_id": ObjectId(menu_id)}, {"$pull": {"sections": section_id}})
     return True, dict(
         modified_count = str(result.modified_count)
     )
