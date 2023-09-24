@@ -31,17 +31,16 @@ def get(menu_ids: Union[str, list[str]], as_dict: bool = False) -> Tuple[bool, U
 
 
 def update(menu_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
-    success, result = get(menu_id)
+    success, menu = get(menu_id, as_dict=True)
     if not success:
-        return False, result
-    result = result.model_dump()
-    result.update(data)
-    success, reason = validate(result)
+        return False, menu
+    menu.update(data)
+    success, reason = validate(menu)
     if not success:
         return False, reason
-    result = db.update_one({"_id": ObjectId(menu_id)}, {"$set": data})
+    db_result = db.update_one({"_id": ObjectId(menu_id)}, {"$set": data})
     return True, dict(
-        modified_count = str(result.modified_count)
+        modified_count = str(db_result.modified_count)
     )
 
 
@@ -63,18 +62,17 @@ def new(menu: Union[dict, Menu]) -> Tuple[bool, Union[dict, str]]:
 
 
 def remove(menu_id) -> Tuple[bool, Union[dict, str]]:
-    success, result = get(menu_id)
-    logger.error(result)
+    success, menu = get(menu_id)
     if not success:
-        return False, result
-    removed_menus = db.delete_one({"_id": ObjectId(result.id)}).deleted_count
+        return False, menu
+    removed_menus = db.delete_one({"_id": ObjectId(menu.id)}).deleted_count
     data = dict(
         removed_menus = removed_menus,
         removed_sections = 0,
         removed_products = 0
     )
-    if result.sections:
-        success, result = sections.remove(result.sections)
+    if menu.sections:
+        success, result = sections.remove(menu.sections)
         if not success:
             logger.error(f"Error al remover las secciones: {result}")
             return False, result

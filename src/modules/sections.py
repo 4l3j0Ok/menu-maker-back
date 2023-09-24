@@ -20,10 +20,10 @@ def get(
     ) -> Tuple[bool, Union[SectionDB, list[SectionDB]]]:
     query = {}
     if menu_id:
-        success, result = menus.get(menu_id)
+        success, menu = menus.get(menu_id)
         if not success:
-            return False, result
-        query = {"_id": {"$in": [ObjectId(section) for section in result.sections]}}
+            return False, menu
+        query = {"_id": {"$in": [ObjectId(section) for section in menu.sections]}}
     elif section_ids:
         section_ids = section_ids if isinstance(section_ids, list) else [section_ids]
         section_ids = section_ids if isinstance(section_ids[0], ObjectId) \
@@ -44,44 +44,44 @@ def new(menu_id: str, section: Union[dict, Section]) -> Tuple[bool, Union[dict, 
     if not success:
         return False, reason
     section["products"] = section.get("products", [])
-    result = db.insert_one(section)
+    db_result = db.insert_one(section)
     success, result = menus.append_section(menu_id, result.inserted_id)
     if not success:
         logger.error(result)
         return False, result
-    return True, result
+    return True, db_result
 
 
 def update(section_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
-    success, result = get(section_id)
+    success, section = get(section_id, as_dict=True)
     if not success:
-        return False, result
-    result.update(data)
-    success, reason = validate(result)
+        return False, section
+    section.update(data)
+    success, reason = validate(section)
     if not success:
         return False, reason
-    result = db.update_one({"_id": ObjectId(section_id)}, {"$set": data})
+    db_result = db.update_one({"_id": ObjectId(section_id)}, {"$set": data})
     return True, dict(
-        modified_count = str(result.modified_count)
+        modified_count = str(db_result.modified_count)
     )
 
 
 def remove(section_ids) -> Tuple[bool, Union[dict, str]]:
-    success, result = get(section_ids=section_ids)
+    success, section = get(section_ids=section_ids)
     if not success:
-        logger.error(f"Error al remover las secciones: {result}")
-        return False, result
-    removed_sections = db.delete_one({"_id": result.id}).deleted_count
+        logger.error(f"Error al remover las secciones: {section}")
+        return False, section
+    removed_sections = db.delete_one({"_id": section.id}).deleted_count
     data = dict(
         removed_sections = removed_sections,
         removed_products = 0
     )
-    if result.products:
-        success, result = products.remove(result.products)
+    if section.products:
+        success, product = products.remove(section.products)
         if not success:
-            logger.error(f"Error al remover los productos: {result}")
-            return False, result
-        data.update(result)
+            logger.error(f"Error al remover los productos: {product}")
+            return False, product
+        data.update(product)
     return True, data
 
 
@@ -90,9 +90,9 @@ def validate(section, ignored_keys=[]):
         Section.model_validate(section)
         if section.products:
             for i, products_id in enumerate(section.products):
-                success, result = products.get(products_id, index=i)
+                success, product = products.get(products_id, index=i)
                 if not success:
-                    return False, result
+                    return False, product
         return True, None
     except ValidationError as vex:
         fault_keys = [error["loc"][0] for error in vex.errors() if str(error["loc"][0]) not in ignored_keys]
@@ -104,10 +104,10 @@ def validate(section, ignored_keys=[]):
 
 def append_product(section_id: str, product_id: Union[str, ObjectId]):
     product_id = product_id if isinstance(product_id, ObjectId) else ObjectId(product_id)
-    success, result = get(section_ids=section_id)
+    success, section = get(section_ids=section_id)
     if not success:
-        return False, result
-    result = db.update_one({"_id": ObjectId(section_id)}, {"$push": {"products": product_id}})
+        return False, section
+    db_result = db.update_one({"_id": ObjectId(section_id)}, {"$push": {"products": product_id}})
     return True, dict(
-        modified_count = str(result.modified_count)
+        modified_count = str(db_result.modified_count)
     )

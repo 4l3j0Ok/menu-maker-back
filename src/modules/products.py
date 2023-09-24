@@ -18,10 +18,10 @@ def get(
     ) -> Tuple[bool, Union[ProductDB, list[ProductDB]]]:
     query = {}
     if section_id:
-        success, result = sections.get(section_ids=section_id)
+        success, section = sections.get(section_ids=section_id)
         if not success:
-            return False, result
-        query = {"_id": {"$in": [ObjectId(product) for product in result.products]}}
+            return False, section
+        query = {"_id": {"$in": [ObjectId(product) for product in section.products]}}
     elif product_ids:
         product_ids = product_ids if isinstance(product_ids, list) else [product_ids]
         product_ids = product_ids if isinstance(product_ids[0], ObjectId) \
@@ -42,36 +42,36 @@ def new(section_id: str, product: Union[dict, Product]) -> Tuple[bool, Union[dic
     if not success:
         return False, reason
     logger.info(f"Ejecutando insert_one: {product}")
-    result = db.insert_one(product)
-    success, result = sections.append_product(section_id, result.inserted_id)
+    db_result = db.insert_one(product)
+    success, result = sections.append_product(section_id, db_result.inserted_id)
     if not success:
         logger.error(result)
         return False, result
-    return True, result
+    return True, db_result
 
 
 def update(product_id: str, data: dict) -> Tuple[bool, Union[dict, str]]:
-    success, result = get(product_id)
+    success, product = get(product_id, as_dict=True)
     if not success:
-        return False, result
-    result.update(data)
-    success, reason = validate(result)
+        return False, product
+    product.update(data)
+    success, reason = validate(product)
     if not success:
         return False, reason
     query = ({"_id": ObjectId(product_id)}, {"$set": data})
     logger.info(f"Ejecutando update_one: {query}")
-    result = db.update_one(*query)
+    db_result = db.update_one(*query)
     return True, dict(
-        modified_count = str(result.modified_count)
+        modified_count = str(db_result.modified_count)
     )
 
 
 def remove(product_ids) -> Tuple[bool, Union[dict, str]]:
-    success, result = get(product_ids=product_ids)
+    success, product = get(product_ids=product_ids)
     if not success:
-        logger.error(f"Error al remover : {result}")
-        return False, result
-    query = {"_id": ObjectId(result.id)}
+        logger.error(f"Error al remover : {product}")
+        return False, product
+    query = {"_id": ObjectId(product.id)}
     logger.info(f"Ejecutando delete_one: {query}")
     removed_products = db.delete_one(query).deleted_count
     data = dict(
