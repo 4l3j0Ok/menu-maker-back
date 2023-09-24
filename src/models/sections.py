@@ -13,10 +13,13 @@ class Section(BaseModel):
 
 class SectionDB(Section):
     id: str
+    menu_id: str
 
     def __init__(self, **section):
         if "_id" in section and isinstance(section["_id"], ObjectId):
             section["id"] = str(section["_id"])
         if "products" in section:
             section["products"] = [str(product) for product in section["products"]]
+        if "menu_id" in section and isinstance(section["menu_id"], ObjectId):
+            section["menu_id"] = str(section["menu_id"])
         super().__init__(**section)

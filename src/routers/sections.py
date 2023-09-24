@@ -10,9 +10,13 @@ router = APIRouter()
 
 
 @router.get("/")
-def get_sections(menu_id: str = None) -> Result:
-    """Obtiene la lista de secciones en base al id del menú."""
-    success, result = sections.get(menu_id=menu_id, as_dict=True)
+def get_sections(menu_id: str = None, section_id: str = None) -> Result:
+    """Obtiene la lista de secciones en base al id de la sección o del menú."""
+    success, result = sections.get(
+        menu_id=menu_id,
+        section_ids=section_id,
+        as_dict=True
+    )
     if not success:
         raise HTTPException(status_code=400, detail=result)
     return Result(payload=result, message=messages.MSG_SUCCESS_GENERIC)
