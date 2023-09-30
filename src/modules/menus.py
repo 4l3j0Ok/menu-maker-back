@@ -20,13 +20,13 @@ def get(menu_ids: Union[str, list[str]], as_dict: bool = False) -> Tuple[bool, U
                 return False, messages.ERR_SCHEMA.format(err_args="menu_id")
         parsed_ids = [ObjectId(menu_id) for menu_id in menu_ids]
         query = {"_id": {"$in": parsed_ids}}
-    result = list(db.find(query))
-    if not result:
+    menus = list(db.find(query))
+    if not menus:
         if not menu_ids:
             return False, messages.ERR_EMPTY_COLLECTION
         return False, messages.ERR_MENU_NOT_FOUND.format(id=menu_ids[0])
-    data = list(MenuDB(**item) for item in result) if not as_dict \
-        else list(MenuDB(**item).model_dump() for item in result)
+    data = list(MenuDB(**item) for item in menus) if not as_dict \
+        else list(MenuDB(**item).model_dump() for item in menus)
     return True, data if len(data) > 1 else data[0]
 
 

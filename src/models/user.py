@@ -6,7 +6,6 @@ from bson import ObjectId
 class User(BaseModel):
     username: str
     name: str
-    surname: str
     email: str
 
 
